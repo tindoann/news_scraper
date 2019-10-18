@@ -9,7 +9,8 @@ module.exports = function (app) {
 
   let resultsArr = [];
 
-  // A GET route for scraping the echoJS website
+  // A GET route for scraping the HACKERNEWS website
+
   app.get("/scrape", function (req, res) {
     // First, we grab the body of the html with axios
     axios.get("http://news.ycombinator.com").then(function (response) {
@@ -52,6 +53,7 @@ module.exports = function (app) {
     res.redirect("/");
   });
 
+
   // Route for getting all Articles from the db
   app.get("/articles", function (req, res) {
     // Grabs all the document in the articles collection
@@ -64,6 +66,8 @@ module.exports = function (app) {
         res.json(err);
       });
   });
+
+
 
   // Route for grabbing a specific Article by id, populate with comments
   app.get("/article/:id", function (req, res) {
@@ -83,29 +87,47 @@ module.exports = function (app) {
       });
   });
 
+
   // Route to save a new comment
-  app.post('/comment/:id', function (req, res) {
+  app.post('/comment/:id', function(req, res) {
     db.Comment.create(req.body)
-      .then(function (dbComment) {
-        return db.Article.findOneAndUpdate({
-          _id: req.params.id
-        }, {
-          $push: {
-            comments: dbComment._id
-          }
-        }, {
-          new: true
-        });
-      }).then(function (data) {
+        .then(function(dbComment) {
+        return db.Article.findOneAndUpdate({ _id: req.params.id }, {$push: { comments: dbComment._id }}, { new: true });
+    }).then(function(data) {
         res.json(data);
-      })
-      .catch(function (err) {
+    }).catch(function(err) {
         res.json(err);
-      });
-  });
+    });
+});
+          
+  // Route to delete a comment - Ra
+  app.delete('/delete/comment/:id', function (req, res) {
 
-  // Route to delete a comment
-  app.post('/delete/comment/:id', function (req, res) {
+    db.Article.findOne({
+     _id: req.params.id
+    }).then(function(dbArticle) {
+      // If there is a note associated with the deleted article, we want to delete it as well
+      if (dbArticle.comments) {
+        let commentId = dbArticle.comment; 
+        db.Note.findByIdAndDelete(commentId)
+          .then(data => {
+            res.send('Success')
+          }).catch(function(err) {
+            res.json(err)
+          })
+        }
+      })
+    }); 
 
-  })
-}
+    // Find the article and get rid of it
+
+    db.Article.findByIdAndDelete(req.params.id)
+      .then(data => {
+        res.send('Success')
+        console.log(data)
+      }).catch(function(err) {
+        res.json(err)
+      }); 
+
+  }; 
+  
